@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI News — SignalSummary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --line: #e7e6f0;
+  --ink: #17172b;
+  --ink-muted: #6b6b80;
+  --navy: #5b3df0;
+  --navy-soft: #f1edfe;
+  --neon-blue: #4f6df5;
+  --neon-purple: #a855f7;
+  --neon-gradient: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  --font-serif: 'Fraunces', serif;
+  --font-sans: 'Work Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --shadow-warm: 0 14px 28px -14px rgba(91, 61, 240, 0.18), 0 2px 6px rgba(91, 61, 240, 0.06);
+}
+body.dark {
+  --bg: #100f1c;
+  --surface: #191830;
+  --line: #2e2c4a;
+  --ink: #eeeef7;
+  --ink-muted: #9c9ab8;
+  --navy-soft: #241f47;
+}
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100%; }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  max-width: 640px;
+  margin: 0 auto;
+}
+.topnav-left { display: flex; align-items: center; gap: 10px; }
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+.theme-toggle {
+  width: 38px; height: 38px; border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.theme-toggle svg { stroke: var(--ink); }
+.theme-toggle .icon-moon { display: none; }
+body.dark .theme-toggle .icon-sun { display: none; }
+body.dark .theme-toggle .icon-moon { display: block; }
+
+.deck { max-width: 640px; margin: 0 auto; padding: 28px 20px 70px; }
+.page-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 26px;
+  margin: 4px 0 6px;
+}
+.page-sub {
+  color: var(--ink-muted);
+  font-size: 14px;
+  margin-bottom: 26px;
+}
+.news-list { display: flex; flex-direction: column; gap: 14px; }
+#newsList { display: flex; flex-direction: column; gap: 14px; }
+.news-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: var(--shadow-warm);
+}
+.news-card-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.news-card-desc {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.news-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.featured-badge {
+  display: inline-block;
+  background: var(--neon-gradient);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+.news-card-link {
+  color: var(--navy);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 12.5px;
+}
+.news-loading, .news-error {
+  color: var(--ink-muted);
+  font-size: 14px;
+  padding: 30px 0;
+  text-align: center;
+}
+.source-note {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 24px;
+}
+</style>
+</head>
+<body>
+
+  <nav class="topnav">
+    <a class="back-link" href="index.html">← Back to SignalSummary</a>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+      <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
+      <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </nav>
+
+  <main class="deck">
+    <h1 class="page-title">AI News</h1>
+    <p class="page-sub">The latest artificial intelligence headlines, updated automatically.</p>
+
+    <div class="news-list">
+      <div class="news-card">
+        <span class="featured-badge">Featured</span>
+        <div class="news-card-title">Anthropic unveils Claude Sonnet 5</div>
+        <div class="news-card-desc">Anthropic released Claude Sonnet 5 on June 30, 2026 — its most agentic Sonnet model yet, with performance approaching its larger Opus 4.8 model at a much lower price. It's now the default model on Free and Pro plans, and available across the Claude Platform, Claude Code, and major cloud providers. Anthropic says it shows major gains in coding, reasoning, and tool use over Sonnet 4.6, while also being safer to run autonomously.</div>
+        <div class="news-card-meta">
+          <span>Jun 30, 2026</span>
+          <a class="news-card-link" href="https://www.anthropic.com/news/claude-sonnet-5" target="_blank" rel="noopener">Read full article →</a>
+        </div>
+      </div>
+      <div id="newsList">
+        <div class="news-loading">Loading the latest headlines…</div>
+      </div>
+    </div>
+
+    <div class="source-note">Headlines and summaries via TechCrunch · tap any story to read the full article at the source</div>
+  </main>
+
+<script>
+  const themeToggle = document.getElementById("themeToggle");
+  function applyTheme(mode) { document.body.classList.toggle("dark", mode === "dark"); }
+  let savedTheme = null;
+  try { savedTheme = localStorage.getItem("theme"); } catch (e) {}
+  applyTheme(savedTheme || "light");
+  themeToggle.addEventListener("click", () => {
+    const next = document.body.classList.contains("dark") ? "light" : "dark";
+    applyTheme(next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+  });
+
+  function timeAgo(dateStr) {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const hours = Math.floor(diffMs / 3600000);
+    if (hours < 1) return "just now";
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  }
+  function stripHtml(html) {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return (div.textContent || div.innerText || "").trim();
+  }
+
+  const newsList = document.getElementById("newsList");
+  const feedUrl = encodeURIComponent("https://techcrunch.com/category/artificial-intelligence/feed/");
+  fetch(`https://api.rss2json.com/v1/api.json?rss_url=${feedUrl}&count=20`)
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.status !== "ok" || !data.items || !data.items.length) throw new Error("empty");
+      newsList.innerHTML = data.items.map((item) => {
+        const desc = stripHtml(item.description).slice(0, 160);
+        return `
+          <div class="news-card">
+            <div class="news-card-title">${item.title}</div>
+            <div class="news-card-desc">${desc}${desc.length === 160 ? "…" : ""}</div>
+            <div class="news-card-meta">
+              <span>${timeAgo(item.pubDate)}</span>
+              <a class="news-card-link" href="${item.link}" target="_blank" rel="noopener">Read full article →</a>
+            </div>
+          </div>
+        `;
+      }).join("");
+    })
+    .catch(() => {
+      newsList.innerHTML = `<div class="news-error">Couldn't load news right now. Please try again later.</div>`;
+    });
+</script>
+</body>
+</html>
