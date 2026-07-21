@@ -1,0 +1,3036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SignalSummary — Voice to Text</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234f6df5'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='white'/%3E%3Crect x='9' y='34' width='7' height='18' rx='2' fill='url(%23g)'/%3E%3Crect x='20' y='24' width='7' height='28' rx='2' fill='url(%23g)'/%3E%3Crect x='31' y='14' width='7' height='38' rx='2' fill='url(%23g)'/%3E%3Crect x='42' y='28' width='7' height='24' rx='2' fill='url(%23g)'/%3E%3Crect x='53' y='20' width='2' height='0' fill='none'/%3E%3C/svg%3E">
+<meta property="og:title" content="SignalSummary — Voice to Text &amp; Summary">
+<meta property="og:description" content="Record your voice or upload audio, get an accurate transcript or a short AI summary — instantly, free.">
+<meta property="og:type" content="website">
+<meta name="description" content="Record your voice or upload audio, get an accurate transcript or a short AI summary — instantly, free.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SignalSummary — Voice to Text &amp; Summary">
+<meta name="twitter:description" content="Record your voice or upload audio, get an accurate transcript or a short AI summary — instantly, free.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --line: #e7e6f0;
+  --ink: #17172b;
+  --ink-muted: #6b6b80;
+  --navy: #5b3df0;
+  --navy-soft: #f1edfe;
+  --brick: #c026d3;
+  --brick-soft: #fbe9fb;
+  --neon-blue: #4f6df5;
+  --neon-purple: #a855f7;
+  --neon-gradient: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  --neon-glow: 0 0 0 1px rgba(91, 61, 240, 0.08), 0 10px 30px -10px rgba(139, 92, 246, 0.45), 0 0 22px -6px rgba(79, 109, 245, 0.5);
+  --font-serif: 'Fraunces', serif;
+  --font-sans: 'Work Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --shadow-warm: 0 14px 28px -14px rgba(91, 61, 240, 0.18), 0 2px 6px rgba(91, 61, 240, 0.06);
+}
+* { box-sizing: border-box; }
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+body {
+  margin: 0;
+  background-color: #ffffff;
+  background-image: none;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+body.lang-fa {
+  font-family: 'Vazirmatn', var(--font-sans);
+}
+body.lang-fa .logo-text {
+  font-family: 'Vazirmatn', var(--font-serif);
+}
+html[dir="rtl"] .wrap { text-align: right; }
+html[dir="rtl"] .tagline { text-align: center; }
+html[dir="rtl"] .lang-row { flex-direction: row-reverse; }
+html[dir="rtl"] .badges { flex-direction: row-reverse; }
+html[dir="rtl"] .steps { direction: rtl; }
+html[dir="rtl"] .step { flex-direction: row-reverse; text-align: right; }
+html[dir="rtl"] .results-header { flex-direction: row-reverse; }
+html[dir="rtl"] .results-body { text-align: right; direction: rtl; }
+html[dir="rtl"] .menu-links { text-align: right; }
+.lang-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lang-toggle:hover { color: var(--navy); border-color: var(--navy); }
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.wrap {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 36px 22px 60px;
+  text-align: center;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.logo-mark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 22px;
+}
+.logo-mark span {
+  width: 4px;
+  background: var(--neon-gradient);
+  border-radius: 1px;
+}
+.logo-text {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 21px;
+  color: var(--ink);
+}
+.tagline {
+  color: var(--ink-muted);
+  font-size: 15px;
+  line-height: 1.65;
+  max-width: 420px;
+  margin: 0 auto 28px;
+  animation: riseIn 0.5s ease both;
+}
+
+.panel-wrap {
+  position: relative;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: left;
+  box-shadow: var(--shadow-warm);
+  animation: riseIn 0.5s ease both;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 10px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab.active { background: var(--navy-soft); color: var(--navy); box-shadow: inset 0 0 0 1px rgba(91,61,240,0.15); }
+.tab:not(.active) { color: var(--ink-muted); }
+
+.dropzone {
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  padding: 34px 20px;
+  text-align: center;
+  background: var(--bg);
+}
+body.dark .dropzone { background: #14132a; }
+.mode-icons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.mode-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.mode-icon.active {
+  background: var(--neon-gradient);
+  border-color: transparent;
+  box-shadow: 0 6px 18px -6px rgba(139,92,246,0.55);
+}
+.mode-icon svg { stroke: var(--navy); }
+.mode-icon.active svg { stroke: #fff; }
+
+.drop-title {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 18px;
+}
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--neon-gradient);
+  color: #fff;
+  border: none;
+  padding: 13px 26px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: var(--neon-glow);
+}
+.upload-btn:hover { transform: translateY(-1px); }
+.upload-btn:active { transform: translateY(1px) scale(0.98); }
+.support-text {
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 12px;
+  margin-top: 14px;
+  font-family: var(--font-mono);
+}
+
+.badges {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.badge-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.badge-icon.a { background: var(--brick-soft); }
+.badge-icon.b { background: var(--navy-soft); }
+
+.footer-note {
+  margin-top: 30px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.footer-note a { color: var(--navy); }
+
+/* --- Top nav --- */
+.topnav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.topnav-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  direction: ltr;
+}
+.topnav-row2 {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  direction: ltr;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.topnav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topnav-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink);
+}
+.topnav-logo .logo-mark span { background: var(--navy); }
+.topnav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  direction: ltr;
+}
+.topnav-actions .btn-signin,
+.topnav-actions .btn-signup { direction: initial; unicode-bidi: plaintext; }
+.btn-signin {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: none;
+  border: none;
+  padding: 8px 6px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.login-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.login-icon-btn svg { stroke: var(--ink); }
+
+/* --- News link --- */
+.news-link-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+.news-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  text-decoration: none;
+  color: var(--ink);
+}
+.news-btn svg { stroke: var(--ink); }
+.news-label {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--ink-muted);
+}
+.news-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brick);
+}
+.news-soon {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #fff;
+  background: var(--brick);
+  padding: 1px 4px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+html[dir="rtl"] .news-soon { right: auto; left: -4px; }
+
+#topnavActions .btn-signin {
+  font-size: 12px;
+  padding: 7px 4px;
+}
+#topnavActions .btn-signup {
+  font-size: 12px;
+  padding: 7px 12px;
+}
+.btn-signup {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--navy);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+
+/* --- Site footer --- */
+.site-footer {
+  border-top: 1px solid var(--line);
+  margin-top: 46px;
+  padding: 32px 22px 40px;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.footer-grid {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  text-align: left;
+  margin-bottom: 22px;
+}
+.footer-col h4 {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 10px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.footer-col a {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+.footer-col a:hover { color: var(--navy); }
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-muted);
+  text-align: left;
+}
+.footer-bottom a { color: var(--ink-muted); }
+
+/* --- Hamburger menu --- */
+.hamburger {
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.hamburger svg { stroke: var(--ink); }
+
+.menu-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 78%;
+  max-width: 300px;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -8px 0 24px rgba(0,0,0,0.08);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 50;
+  padding: 20px;
+  text-align: left;
+}
+.menu-panel.open { transform: translateX(0); }
+
+.menu-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+}
+.menu-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.menu-links a {
+  display: block;
+  padding: 13px 4px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.menu-section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 18px 0 4px;
+}
+.menu-account {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+.menu-account button { flex: 1; }
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(28,28,26,0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 40;
+}
+.scrim.open { opacity: 1; pointer-events: auto; }
+
+/* --- Language selector --- */
+.lang-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 6px 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+.lang-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+}
+.lang-select {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--navy-soft);
+  border: none;
+  border-radius: 6px;
+  padding: 7px 10px;
+}
+.lang-history-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.lang-history-btn svg { stroke: currentColor; }
+.lang-history-btn:hover { color: var(--navy); border-color: var(--navy); }
+
+/* --- How it works --- */
+.section-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 19px;
+  margin: 46px 0 20px;
+  text-align: center;
+}
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+.step {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: var(--shadow-warm);
+  transition: transform 0.2s ease;
+}
+.step:hover { transform: translateY(-2px); }
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--navy);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.step-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+.step-desc {
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+/* --- Privacy banner --- */
+.privacy-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--navy-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  text-align: left;
+  margin-top: 22px;
+}
+.privacy-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+.privacy-text-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.privacy-text-sub {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* --- FAQ --- */
+.faq {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+.faq-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.faq-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.faq-chevron {
+  transition: transform 0.2s ease;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+.faq-item.open .faq-chevron { transform: rotate(180deg); }
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+  padding: 0 16px;
+}
+.faq-item.open .faq-answer {
+  max-height: 200px;
+  padding: 0 16px 16px;
+}
+
+/* --- Output mode toggle --- */
+.output-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.output-toggle-btn {
+  padding: 10px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+  text-align: center;
+}
+.output-toggle-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.output-toggle-btn.active {
+  background: var(--navy-soft);
+  color: var(--navy);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px rgba(91,61,240,0.15);
+}
+
+.length-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.length-btn {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+  text-align: center;
+}
+.length-btn.active {
+  border-color: transparent;
+}
+.length-btn.active[data-len="short"] {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.length-btn.active[data-len="medium"] {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+.length-btn.active[data-len="long"] {
+  background: #fee2e2;
+  color: #dc2626;
+}
+body.dark .length-btn.active[data-len="short"] {
+  background: rgba(22,163,74,0.18);
+  color: #4ade80;
+}
+body.dark .length-btn.active[data-len="medium"] {
+  background: rgba(202,138,4,0.18);
+  color: #facc15;
+}
+body.dark .length-btn.active[data-len="long"] {
+  background: rgba(220,38,38,0.18);
+  color: #f87171;
+}
+
+/* --- Recording state --- */
+.mode-icon.pulsing {
+  animation: pulseGlow 1.2s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 6px 18px -6px rgba(139,92,246,0.55); }
+  50% { box-shadow: 0 6px 26px -4px rgba(139,92,246,0.9); }
+}
+.timer-text {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: 10px;
+}
+.usage-counter {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+.upload-btn.recording {
+  background: linear-gradient(135deg, #ef4444, #c026d3);
+}
+.upload-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --- Upload tab notice --- */
+.upload-notice {
+  text-align: center;
+  padding: 30px 16px;
+}
+.upload-notice-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+.upload-notice-sub {
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+.hidden { display: none !important; }
+
+.tip-box {
+  background: var(--navy-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+  margin-top: 12px;
+}
+
+.beta-banner {
+  background: var(--navy-soft);
+  color: var(--ink);
+  text-align: center;
+  font-size: 12.5px;
+  padding: 10px 16px;
+  line-height: 1.6;
+}
+
+.verify-banner {
+  background: #16a34a;
+  color: #fff;
+  text-align: center;
+  font-size: 13px;
+  padding: 10px 40px;
+  line-height: 1.6;
+  position: relative;
+}
+.verify-banner .verify-banner-close {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+html[dir="rtl"] .verify-banner .verify-banner-close { right: auto; left: 12px; }
+
+/* --- Results panel --- */
+.results-panel {
+  background: var(--surface);
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--neon-gradient) border-box;
+  border-radius: 12px;
+  box-shadow: var(--shadow-warm);
+  margin-top: 16px;
+  overflow: hidden;
+  text-align: left;
+}
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+}
+.results-copy {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  border: 1px solid var(--line);
+  padding: 5px 10px;
+  border-radius: 5px;
+  background: none;
+  cursor: pointer;
+}
+.results-copy:disabled { opacity: 0.4; cursor: not-allowed; }
+.results-copy:not(:disabled):hover { color: var(--navy); border-color: var(--navy); }
+.results-body {
+  padding: 18px 16px;
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  min-height: 60px;
+  outline: none;
+}
+.results-body[contenteditable="true"] {
+  cursor: text;
+}
+.results-body[contenteditable="true"]:focus {
+  box-shadow: inset 0 0 0 2px var(--navy-soft);
+  border-radius: 4px;
+}
+.edit-hint {
+  font-size: 11px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  padding: 0 16px 12px;
+}
+.results-body .placeholder {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+.error-text { color: #dc2626; font-family: var(--font-mono); font-size: 13px; }
+
+/* --- Dark mode --- */
+body.dark {
+  --bg: #100f1c;
+  --surface: #191830;
+  --line: #2e2c4a;
+  --ink: #eeeef7;
+  --ink-muted: #9c9ab8;
+  --navy-soft: #241f47;
+  --brick-soft: #33203a;
+}
+body.dark { background-color: var(--bg); }
+body.dark .auth-modal { background: var(--surface); }
+body.dark .auth-field input { background: #14132a; color: var(--ink); }
+body.dark .google-btn { background: var(--surface); color: var(--ink); }
+
+.theme-toggle {
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.theme-toggle svg { stroke: var(--ink); }
+.theme-toggle .icon-moon { display: none; }
+body.dark .theme-toggle .icon-sun { display: none; }
+body.dark .theme-toggle .icon-moon { display: block; }
+
+/* --- Pricing --- */
+.pricing-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+.price-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-warm);
+}
+.price-card.pro {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--neon-gradient) border-box;
+  position: relative;
+}
+.price-badge {
+  position: absolute;
+  top: -10px;
+  right: 18px;
+  background: var(--neon-gradient);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.price-name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 2px;
+}
+.price-amount {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 6px 0 14px;
+}
+.price-amount span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+.price-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--ink-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.price-features li::before {
+  content: "✓ ";
+  color: var(--navy);
+  font-weight: 700;
+}
+.price-cta {
+  width: 100%;
+  padding: 11px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.price-cta:hover { border-color: var(--navy); color: var(--navy); }
+.price-cta.current {
+  background: var(--navy-soft);
+  color: var(--navy);
+  cursor: default;
+  border-color: transparent;
+}
+.price-cta.current:hover { border-color: transparent; color: var(--navy); }
+
+/* --- About section --- */
+.about-section {
+  text-align: left;
+  background: var(--navy-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 22px 20px;
+  margin-top: 46px;
+}
+.about-section p {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+.about-section p:last-child { margin-bottom: 0; }
+.about-contact-link {
+  color: var(--navy);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* --- History --- */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.history-item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: var(--shadow-warm);
+  text-align: left;
+}
+.history-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+.history-item-delete {
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+.history-item-delete:hover { color: #dc2626; }
+.history-item-transcript {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  max-height: 4.8em;
+  overflow: hidden;
+}
+.history-item-summary {
+  font-size: 13px;
+  color: var(--ink-muted);
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
+  line-height: 1.6;
+}
+.history-empty, .history-loading {
+  color: var(--ink-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px 0;
+}
+.history-item-use {
+  margin-top: 10px;
+  width: 100%;
+  padding: 9px;
+  border-radius: 7px;
+  border: 1px solid var(--navy);
+  background: var(--navy-soft);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 12.5px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+/* --- Auth modal --- */
+.auth-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(23,23,43,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 80;
+  padding: 20px;
+}
+.auth-scrim.open { opacity: 1; pointer-events: auto; }
+.auth-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 26px 24px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 30px 60px -20px rgba(23,23,43,0.4);
+  transform: translateY(8px);
+  transition: transform 0.2s ease;
+}
+.auth-scrim.open .auth-modal { transform: translateY(0); }
+.auth-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.auth-modal-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 19px;
+}
+.auth-modal-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.auth-field {
+  margin-bottom: 12px;
+}
+.auth-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin-bottom: 5px;
+}
+.auth-field input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  font-family: var(--font-sans);
+  background: #fafaff;
+}
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--navy);
+}
+.auth-submit {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 7px;
+  background: var(--neon-gradient);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  margin-top: 6px;
+  box-shadow: var(--neon-glow);
+}
+.auth-switch {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: 14px;
+}
+.auth-switch a {
+  color: var(--navy);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+.auth-error {
+  font-size: 13px;
+  color: #dc2626;
+  margin-bottom: 10px;
+  min-height: 1px;
+}
+.auth-field-error {
+  font-size: 12.5px;
+  color: #dc2626;
+  margin-top: 6px;
+  min-height: 0;
+}
+
+.auth-phone-row {
+  display: flex;
+  align-items: stretch;
+  direction: ltr;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fafaff;
+  overflow: hidden;
+}
+.auth-phone-row:focus-within { border-color: var(--navy); }
+.auth-phone-prefix {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  background: var(--navy-soft);
+  border-right: 1px solid var(--line);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.auth-phone-prefix svg { flex-shrink: 0; border-radius: 2px; }
+.auth-phone-row input {
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  background: transparent;
+}
+.otp-boxes {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  direction: ltr;
+}
+.otp-box {
+  width: 46px;
+  height: 54px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: #fafaff;
+  font-family: var(--font-sans);
+  color: var(--ink);
+}
+.otp-box:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(91,61,240,0.12);
+}
+
+.google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.google-btn:hover { background: #fafaff; box-shadow: 0 2px 10px -4px rgba(23,23,43,0.15); }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 16px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.auth-divider::before, .auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.topbar, .topnav {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.topnav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--navy-soft);
+  padding: 7px 12px;
+  border-radius: 999px;
+  max-width: 140px;
+  min-width: 0;
+}
+.user-chip span:not(.dot) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.user-chip .dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--neon-gradient);
+}
+.unverified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.btn-signout {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: none;
+  border: 1px solid var(--line);
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+  <div class="scrim" id="scrim"></div>
+
+  <div class="auth-scrim" id="authScrim">
+    <div class="auth-modal">
+      <div class="auth-modal-header">
+        <div class="auth-modal-title" id="authTitle">Sign in</div>
+        <button class="auth-modal-close" id="authClose">✕</button>
+      </div>
+      <div class="auth-error" id="authError"></div>
+
+      <!-- Step 1: enter Iranian mobile number -->
+      <form id="authPhoneForm">
+        <div class="auth-field">
+          <label data-i18n="authPhoneLabel">Mobile number</label>
+          <div class="auth-phone-row">
+            <span class="auth-phone-prefix">
+              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAcCAIAAACoDqudAAAEI0lEQVR42u1Wu44dRRA9Vf2YnsfdvesHFgghAjZzYCEEiMA5iUNAfBHmK0iNiCxiWyZGQrYgsR0YeWUhg/dx752ZO9PdVQS7XtZerx+7DozkGql1Sn3OmZK6qmfogx8u4k0KxhsWbwv63xVkCUQEBaAAAALhcXoQA8+gvaJkL/Q5ErVJc8qJACICSFQIABGDRFWhBGIigaoq7e4A+zQ6QkJEgIoqAP5PsvfsSZ5wJiIYMvZ0mJ4Oa6Iy5jFLrnwFaMx5SEPly913dKkvTOGNVdUuDSDUtlSVQWLMqfEVVLPmLi4rVxlmUeni0rEL1im0jwOAypUCiTmNeWxcpYCo9nFZumCYVWWZxkXq7Nlw5sv3Lw4yBlukFPs0Vj4o1MNuxlntKlWtTLE57ARbgLjmsDPOlVAYb5lzlkVqa1sptGD3aJxNXC0qlSk3l1vBFsTk2S/jMiEXxjOIgFnsGl+KIpDfHLarohbJa27l540b9MvGrx9O3utiH1wYc9w9IIUYskMaShf6NNSunA2LxtddWjauXIxtsEWU7IxNKSnUhSprdhnt0NZF1aehcdXOOG9c1aWhdqGLS29clmzYqGqS7I2PEoPxi9jVrupiPynqe7MHpHudeaJID/5iIn733GuYsqzCIMXjVn96Go5YCSpKzO3d29GY9upVBSaXLtks9UfrKkJMu616WP5cZ2VDTERMtLvuAnqcHrkqmHm4f//v7743bVcqVQJq238uX44bG0xMCn7SmQ6YH+3Mx7wYNWcA7Y3rbNgVAcbAWF8ENmZ+/Rpoj3CcIzvJeZO1dnW1v3mTp1MA/a1bZnVK1p2oh45ZijEAqs+/iGyWN39jY0SBLPaTj6tPP9snHMdZUwIz9meNCAfn7mB6GDOPw9D9/sfDb75SxbkrV6rz531RQGSPcKQcwDO2VPU1jH0WHe7eAVFYXz/5t5pm16/59fU4m7G10nVubZrHEaI6juQLLnzqewY0Z7u6muZzY13qFu70mdS2zCb3nZtO1RrNgkUrTKYs06JlY/I4+rVpnM+Nc7lt7alT0vcg1r7npgZI4kgiIDJ1Hedz44v45z26c+GC/fZr6ZfknHYtmEwoRaEp0bCkSaNJiEkWc25WSCVbi+0dU5dKDGYdRqiSt6qELDqOpqkkZxgrsx0zmQBQIswXXAYxTGAdlqpqykpFJCUMA08aiSNXTfrxJ7qzOsU7Z8l5AmA472yb1ammRCHkR4+4aZCVqiA7MxjDzsIajUn7JTeNSibn8tY2r6wgRSpL2dqiqlIV9kHaBUDsPQwjZ2k7mjSahQufNzfNyoqmRKGU7W0KQaFcBH34kG4fvmOevFVxBH4+7SlDvMhtH1sQgQ74qBLRnn53TA7jl6DhWRK80FnVQhVPDdrB9Cj8krRXl7z9yX9b0EnjX+Ctom3QN5A9AAAAAElFTkSuQmCC" width="22" height="13" alt="Iran" style="display:block;border-radius:2px;" />
+              <span>+98</span>
+            </span>
+            <input type="tel" id="authPhone" required placeholder="912xxxxxxx" autocomplete="tel" inputmode="numeric" dir="ltr" />
+          </div>
+          <div class="auth-field-error" id="authPhoneError"></div>
+        </div>
+        <div class="auth-switch" id="authSwitchToSignup" style="margin:2px 0 10px;">
+          <span data-i18n="authNoAccountText">Don't have an account?</span>
+          <a id="authGoSignup" data-i18n="authCreateAccountLink">Sign up</a>
+        </div>
+        <div class="auth-switch hidden" id="authSwitchToSignin" style="margin:2px 0 10px;">
+          <span data-i18n="authHaveAccountText">Already signed in before?</span>
+          <a id="authGoSignin" data-i18n="authSigninLink">Sign in</a>
+        </div>
+        <button type="submit" class="auth-submit" id="authSendCodeBtn" data-i18n="authSendCode">Send code</button>
+      </form>
+
+      <!-- Step 2: enter the OTP code sent by SMS -->
+      <form id="authCodeForm" class="hidden">
+        <div class="auth-field">
+          <div class="otp-boxes" id="otpBoxes">
+            <input type="text" class="otp-box" inputmode="numeric" maxlength="1" autocomplete="one-time-code" dir="ltr" />
+            <input type="text" class="otp-box" inputmode="numeric" maxlength="1" dir="ltr" />
+            <input type="text" class="otp-box" inputmode="numeric" maxlength="1" dir="ltr" />
+            <input type="text" class="otp-box" inputmode="numeric" maxlength="1" dir="ltr" />
+            <input type="text" class="otp-box" inputmode="numeric" maxlength="1" dir="ltr" />
+          </div>
+        </div>
+        <button type="submit" class="auth-submit" id="authVerifyBtn" data-i18n="authVerifyCode">Verify</button>
+        <div class="auth-switch">
+          <a id="authChangeNumber" data-i18n="authChangeNumber">Change number</a>
+          <a id="authResendCode" data-i18n="authResend">Resend code</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="menu-panel" id="menuPanel">
+    <div class="menu-panel-header">
+      <div class="topnav-logo">SignalSummary</div>
+      <button class="menu-close" id="menuClose">✕</button>
+    </div>
+    <div class="menu-links">
+      <a href="#" data-i18n="menuHome">Home</a>
+      <a href="#" data-i18n="tabRecord">Record Audio</a>
+      <a href="#" data-i18n="tabUpload">Upload File</a>
+      <a href="#history" data-i18n="menuHistory">History</a>
+      <a href="#" data-i18n="menuPricing">Pricing</a>
+    </div>
+    <div class="menu-section-label" data-i18n="menuCompany">Company</div>
+    <div class="menu-links">
+      <a href="#about" data-i18n="menuAbout">About</a>
+      <a href="#contact" data-i18n="menuContact">Contact</a>
+      <a href="#privacy" data-i18n="menuPrivacy">Privacy Policy</a>
+    </div>
+    <div class="menu-account" id="menuAccountActions">
+      <button class="btn-signin" id="menuSigninBtn" style="border:1px solid var(--line); border-radius:6px;" data-i18n="signIn">Sign in</button>
+      <button class="btn-signup" id="menuSignupBtn" data-i18n="signUp">Sign up</button>
+    </div>
+  </div>
+
+  <div class="beta-banner" data-i18n="betaBanner">SignalSummary is currently in beta (testing). If you find a bug or have a suggestion (like adding a new language), please email the address at the bottom of the site.</div>
+
+  <div class="verify-banner hidden" id="verifyBanner">
+    <span id="verifyBannerText" data-i18n="verifyBannerText">Account created! Please check your email to verify it — if you don't see it, check your spam folder too.</span>
+    <button class="verify-banner-close" id="verifyBannerClose" aria-label="Dismiss">×</button>
+  </div>
+
+  <nav class="topnav">
+    <div class="topnav-row1">
+      <div class="topnav-brand">
+        <div class="topnav-logo">
+          <div class="logo-mark">
+            <span style="height:6px"></span>
+            <span style="height:12px"></span>
+            <span style="height:16px"></span>
+            <span style="height:9px"></span>
+            <span style="height:13px"></span>
+          </div>
+        </div>
+        <div class="news-link-wrap">
+          <a class="news-btn" href="news.html" aria-label="AI news">
+            <span class="news-dot"></span>
+            <span class="news-soon" data-i18n="soonBadge">Soon</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V4z"/><path d="M17 21V7h3"/><line x1="8" y1="8" x2="14" y2="8"/><line x1="8" y1="12" x2="14" y2="12"/></svg>
+          </a>
+          <span class="news-label">News</span>
+        </div>
+      </div>
+      <div class="topnav-actions" id="topnavActions">
+        <button class="btn-signin" id="navSigninBtn" data-i18n="signIn">Sign in</button>
+        <button class="btn-signup" id="navSignupBtn" data-i18n="signUp">Sign up</button>
+        <button class="hamburger" id="menuOpen" aria-label="Open menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="topnav-row2">
+      <button class="lang-toggle" id="siteLangToggle" aria-label="Change site language">
+        <span id="siteLangToggleLabel">EN</span>
+      </button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
+        <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <div class="wrap">
+
+    <div class="logo">
+      <div class="logo-mark">
+        <span style="height:8px"></span>
+        <span style="height:16px"></span>
+        <span style="height:22px"></span>
+        <span style="height:12px"></span>
+        <span style="height:18px"></span>
+      </div>
+      <div class="logo-text">SignalSummary</div>
+    </div>
+
+    <p class="tagline" data-i18n="tagline">
+      Record your voice or upload an audio file. Get an accurate transcript,
+      or a short summary of the key points — instantly.
+    </p>
+
+    <div class="panel-wrap">
+      <div class="panel">
+      <div class="lang-row">
+        <span class="lang-label" data-i18n="audioLangLabel">Audio language</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <a href="#history" class="lang-history-btn" id="langHistoryBtn" aria-label="History">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg>
+          </a>
+          <select class="lang-select" id="audioLangSelect">
+            <option value="en" data-i18n="langOptEn">English</option>
+            <option value="fa" data-i18n="langOptFa">Persian (فارسی)</option>
+          </select>
+        </div>
+      </div>
+      <div class="tabs">
+        <div class="tab active" data-tab="record">
+          <span>🎙️</span> <span data-i18n="tabRecord">Record Audio</span>
+        </div>
+        <div class="tab" data-tab="upload">
+          <span>📁</span> <span data-i18n="tabUpload">Upload File</span>
+        </div>
+      </div>
+
+      <div class="output-toggle">
+        <div class="output-toggle-btn active" data-out="transcript" data-i18n="outTranscript">Full Transcript</div>
+        <div class="output-toggle-btn" data-out="summary" data-i18n="outSummary">Summary</div>
+      </div>
+
+      <div class="length-toggle hidden" id="lengthToggle">
+        <div class="length-btn" data-len="short" data-i18n="lenShort">Short</div>
+        <div class="length-btn active" data-len="medium" data-i18n="lenMedium">Medium</div>
+        <div class="length-btn" data-len="long" data-i18n="lenLong">Long</div>
+      </div>
+
+      <div class="dropzone" id="recordView">
+        <div class="mode-icons">
+          <div class="mode-icon active" id="micIcon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          </div>
+          <div class="mode-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="10" x2="3" y2="14"/><line x1="8" y1="6" x2="8" y2="18"/><line x1="13" y1="2" x2="13" y2="22"/><line x1="18" y1="7" x2="18" y2="17"/><line x1="21" y1="10" x2="21" y2="14"/></svg>
+          </div>
+        </div>
+
+        <div class="drop-title" id="statusLabel" data-i18n="statusIdle">Tap to start recording</div>
+
+        <button class="upload-btn" id="recordBtn">
+          <span>●</span> <span id="recordBtnText" data-i18n="startRecording">Start Recording</span>
+        </button>
+        <div class="timer-text" id="timerText">00:00</div>
+      </div>
+
+      <div class="dropzone hidden" id="uploadView">
+        <div class="upload-notice">
+          <div class="upload-notice-title" data-i18n="uploadNotAvailTitle">Not available in the free version</div>
+          <div class="upload-notice-sub" data-i18n="uploadNotAvailSub">Transcribing an existing audio file needs a paid AI service.<br>For now, use <strong>Record Audio</strong> to speak live — it's free.</div>
+        </div>
+      </div>
+
+      </div>
+    </div>
+
+    <div class="results-panel">
+      <div class="results-header">
+        <span id="resultsTitle" data-i18n="resultsTitleTranscript">Transcript</span>
+        <div style="display:flex; gap:6px;">
+          <button class="results-copy" id="resetBtn" data-i18n="resetBtn">Reset</button>
+          <button class="results-copy" id="copyBtn" disabled data-i18n="copyBtn">Copy</button>
+        </div>
+      </div>
+      <div class="results-body" id="resultsBody">
+        <span class="placeholder" data-i18n="resultsPlaceholder">Press the button above and start talking.</span>
+      </div>
+    </div>
+
+    <div class="tip-box" id="editHint" data-i18n="editHint">For the best results, speak clearly in good audio quality. If any part of the transcript comes out wrong, you can tap it directly to fix it.</div>
+
+    <div class="tip-box" data-i18n="summaryOnlyTip">If you only want to use the Summary feature, do a short recording first, then edit the transcript and replace it with your own text, then tap Summary.</div>
+
+    <h2 class="section-title" data-i18n="howItWorks">Usage Guide</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title" data-i18n="step1Title">Record or upload</div>
+          <div class="step-desc" data-i18n="step1Desc">Tap the mic and speak, or drop in an existing MP3, WAV, or M4A file.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title" data-i18n="step2Title">Choose your output</div>
+          <div class="step-desc" data-i18n="step2Desc">Pick a full word-for-word transcript, or a short summary of the key points.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title" data-i18n="step3Title">Copy or download</div>
+          <div class="step-desc" data-i18n="step3Desc">Your result appears in seconds — copy it or save it for later.</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title" data-i18n="pricing">Pricing</h2>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-name" data-i18n="priceFree">Free</div>
+        <div class="price-amount" data-i18n="priceFreeAmount">0 تومان</div>
+        <ul class="price-features">
+          <li data-i18n="featFreeTests">3 free tests, 20 seconds each</li>
+          <li data-i18n="featLive">Live voice recording</li>
+          <li data-i18n="featTranscript">Full transcript</li>
+          <li data-i18n="featSummary">Instant summary</li>
+          <li data-i18n="featLangs">English &amp; Persian</li>
+        </ul>
+        <button class="price-cta current" data-i18n="currentPlan">Your current plan</button>
+      </div>
+      <div class="price-card pro">
+        <div class="price-badge" data-i18n="comingSoon">Coming soon</div>
+        <div class="price-name" data-i18n="pricePro">Pro</div>
+        <div class="price-amount"><span data-i18n="priceTBD">TBD</span> <span data-i18n="priceMonth">تومان / ماه</span></div>
+        <ul class="price-features">
+          <li data-i18n="featUpload">Upload existing audio files</li>
+          <li data-i18n="featMoreLangs">More languages</li>
+          <li data-i18n="featHistory">Saved history across devices</li>
+          <li data-i18n="featLonger">Longer recordings</li>
+          <li data-i18n="featSupport">Priority support</li>
+        </ul>
+        <button class="price-cta" data-i18n="notifyMe">Notify me when it's ready</button>
+      </div>
+    </div>
+
+    <div id="historySection" class="hidden">
+      <h2 class="section-title" id="history" data-i18n="menuHistory">History</h2>
+      <div class="about-section" id="historySignedOut">
+        <p data-i18n="historySignInPrompt">Sign in to save and revisit your past transcripts and summaries across devices.</p>
+        <button class="upload-btn" id="historySignInBtn" data-i18n="signIn" style="margin-top:6px;">Sign in</button>
+      </div>
+      <div class="history-list hidden" id="historyList"></div>
+    </div>
+
+    <div id="aboutSection" class="hidden">
+      <h2 class="section-title" id="about" data-i18n="menuAbout">About</h2>
+      <div class="about-section">
+        <p data-i18n="aboutP1">SignalSummary is built and maintained by a single independent developer — not a company or a team. It's a work in progress, and it gets a little better every day.</p>
+        <p data-i18n="aboutP2">If you find a bug, have a question, a suggestion, run into a problem, or you're interested in advertising on this site, please reach out directly at <a class="about-contact-link" href="mailto:signalsummarysupport@gmail.com">signalsummarysupport@gmail.com</a>. Every message is read, and helps shape what gets built next.</p>
+      </div>
+    </div>
+
+    <div id="contactSection" class="hidden">
+      <h2 class="section-title" id="contact" data-i18n="menuContact">Contact</h2>
+      <div class="about-section">
+        <p data-i18n="contactP1">Got a bug to report, a feature to suggest, a question, or an ad inquiry? Reach out directly — every message gets read.</p>
+        <p><a class="about-contact-link" href="mailto:signalsummarysupport@gmail.com">signalsummarysupport@gmail.com</a></p>
+        <p><a class="about-contact-link" href="mailto:signalsummarysupport@gmail.com?subject=Bug report / Feature suggestion" data-i18n="contactReportLink">Report a bug / Suggest a feature →</a></p>
+      </div>
+    </div>
+
+    <div id="privacySection" class="hidden">
+      <h2 class="section-title" id="privacy" data-i18n="menuPrivacy">Privacy Policy</h2>
+      <div class="about-section">
+        <p data-i18n="privacyP1"><strong>Audio:</strong> When you record, your voice is sent to your browser's built-in speech recognition (a free Google service) to turn it into text. SignalSummary itself does not store, save, or listen to your recordings — nothing is kept on any server.</p>
+        <p data-i18n="privacyP2"><strong>Account info:</strong> If you sign up or sign in, we store only your mobile number through Firebase Authentication, so you can access your account. We never sell or share this with third parties.</p>
+        <p data-i18n="privacyP3"><strong>Local preferences:</strong> Your light/dark mode choice is saved only in your own browser, to remember your preference next time.</p>
+        <p data-i18n="privacyP4"><strong>No ads, no tracking:</strong> This site doesn't run ad networks or third-party trackers.</p>
+        <p data-i18n="privacyP5">Questions about this policy? Email <a class="about-contact-link" href="mailto:signalsummarysupport@gmail.com">signalsummarysupport@gmail.com</a>.</p>
+      </div>
+    </div>
+
+    <div id="termsSection" class="hidden">
+      <h2 class="section-title" id="terms" data-i18n="menuTerms">Terms of Service</h2>
+      <div class="about-section">
+        <p data-i18n="termsP1"><strong>Using the service:</strong> SignalSummary lets you record or upload audio to get a transcript and an AI-generated summary. The free plan includes a limited number of short test recordings per device. By using the site, you agree to these terms.</p>
+        <p data-i18n="termsP2"><strong>Your content:</strong> You're responsible for what you record or upload. Don't use the service for anything illegal, or to process audio you don't have the right to use.</p>
+        <p data-i18n="termsP3"><strong>Accuracy:</strong> Transcripts and summaries are generated automatically and may contain mistakes. Don't rely on them for anything where accuracy is critical (legal, medical, or financial decisions) without double-checking against the original audio.</p>
+        <p data-i18n="termsP4"><strong>No guarantees:</strong> The service is provided "as is," built and maintained by one independent developer. Features, limits, and pricing may change as the project develops, and the service may occasionally be unavailable.</p>
+        <p data-i18n="termsP5"><strong>Accounts:</strong> If you sign up, keep your login secure. You're responsible for activity on your account.</p>
+        <p data-i18n="termsP6">Questions about these terms? Email <a class="about-contact-link" href="mailto:signalsummarysupport@gmail.com">signalsummarysupport@gmail.com</a>.</p>
+      </div>
+    </div>
+
+    <h2 class="section-title" data-i18n="faqTitle">Frequently asked questions</h2>
+    <div class="faq" id="faq">
+      <div class="faq-item">
+        <div class="faq-question">
+          <span data-i18n="faq1Q">Is my audio saved anywhere?</span>
+          <span class="faq-chevron">▾</span>
+        </div>
+        <div class="faq-answer" data-i18n="faq1A">No. Your recording is processed to generate the text, then deleted. We don't keep a copy.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">
+          <span data-i18n="faq2Q">What languages are supported?</span>
+          <span class="faq-chevron">▾</span>
+        </div>
+        <div class="faq-answer" data-i18n="faq2A">English and Persian right now. More languages are planned for a future update.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">
+          <span data-i18n="faq3Q">Is it really free?</span>
+          <span class="faq-chevron">▾</span>
+        </div>
+        <div class="faq-answer" data-i18n="faq3A">Yes, the core features are free to use. Sign up only if you want to save your history.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">
+          <span data-i18n="faq4Q">What file formats can I upload?</span>
+          <span class="faq-chevron">▾</span>
+        </div>
+        <div class="faq-answer" data-i18n="faq4A">MP3, WAV, and M4A are supported, up to 25MB per file.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4 data-i18n="footerProduct">Product</h4>
+        <a href="#" data-i18n="tabRecord">Record Audio</a>
+        <a href="#" data-i18n="tabUpload">Upload File</a>
+        <a href="#" data-i18n="pricing">Pricing</a>
+      </div>
+      <div class="footer-col">
+        <h4 data-i18n="menuCompany">Company</h4>
+        <a href="#about" data-i18n="menuAbout">About</a>
+        <a href="#contact" data-i18n="menuContact">Contact</a>
+        <a href="#privacy" data-i18n="menuPrivacy">Privacy Policy</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span data-i18n="footerCopyright">© 2026 SignalSummary. All rights reserved.</span>
+      <a href="#terms" data-i18n="footerTerms">Terms of Service</a>
+    </div>
+  </footer>
+
+  <script>
+    const menuOpen = document.getElementById("menuOpen");
+    const menuClose = document.getElementById("menuClose");
+    const menuPanel = document.getElementById("menuPanel");
+    const scrim = document.getElementById("scrim");
+
+    function openMenu() {
+      menuPanel.classList.add("open");
+      scrim.classList.add("open");
+    }
+    function closeMenu() {
+      menuPanel.classList.remove("open");
+      scrim.classList.remove("open");
+    }
+    menuOpen.addEventListener("click", openMenu);
+    menuClose.addEventListener("click", closeMenu);
+    scrim.addEventListener("click", closeMenu);
+
+    document.querySelectorAll(".faq-item").forEach((item) => {
+      item.querySelector(".faq-question").addEventListener("click", () => {
+        item.classList.toggle("open");
+      });
+    });
+
+    // --- Dark / light mode toggle ---
+    const themeToggle = document.getElementById("themeToggle");
+    function applyTheme(mode) {
+      document.body.classList.toggle("dark", mode === "dark");
+    }
+    let savedTheme = null;
+    try { savedTheme = localStorage.getItem("theme"); } catch (e) {}
+    applyTheme(savedTheme || "light");
+
+    themeToggle.addEventListener("click", () => {
+      const isDark = document.body.classList.contains("dark");
+      const next = isDark ? "light" : "dark";
+      applyTheme(next);
+      try { localStorage.setItem("theme", next); } catch (e) {}
+    });
+
+    // --- Site UI language (Persian / English) ---
+    const TRANSLATIONS = {
+      en: {
+        tagline: "Record your voice or upload an audio file. Get an accurate transcript, or a short summary of the key points — instantly.",
+        audioLangLabel: "Audio language",
+        langOptEn: "English",
+        langOptFa: "Persian (فارسی)",
+        tabRecord: "Record Audio",
+        tabUpload: "Upload File",
+        footerProduct: "Product",
+        footerCopyright: "© 2026 SignalSummary. All rights reserved.",
+        footerTerms: "Terms of Service",
+        aboutP1: "SignalSummary is built and maintained by a single independent developer — not a company or a team. It's a work in progress, and it gets a little better every day.",
+        aboutP2: "If you find a bug, have a question, a suggestion, run into a problem, or you're interested in advertising on this site, please reach out directly at <a class=\"about-contact-link\" href=\"mailto:signalsummarysupport@gmail.com\">signalsummarysupport@gmail.com</a>. Every message is read, and helps shape what gets built next.",
+        contactP1: "Got a bug to report, a feature to suggest, a question, or an ad inquiry? Reach out directly — every message gets read.",
+        contactReportLink: "Report a bug / Suggest a feature →",
+        privacyP1: "<strong>Audio:</strong> When you record, your voice is sent to your browser's built-in speech recognition (a free Google service) to turn it into text. SignalSummary itself does not store, save, or listen to your recordings — nothing is kept on any server.",
+        privacyP2: "<strong>Account info:</strong> If you sign up or sign in, we store only your mobile number through Firebase Authentication, so you can access your account. We never sell or share this with third parties.",
+        privacyP3: "<strong>Local preferences:</strong> Your light/dark mode choice is saved only in your own browser, to remember your preference next time.",
+        privacyP4: "<strong>No ads, no tracking:</strong> This site doesn't run ad networks or third-party trackers.",
+        privacyP5: "Questions about this policy? Email <a class=\"about-contact-link\" href=\"mailto:signalsummarysupport@gmail.com\">signalsummarysupport@gmail.com</a>.",
+        faqTitle: "Frequently asked questions",
+        faq1Q: "Is my audio saved anywhere?",
+        faq1A: "Your transcript, saved in your History, is visible only to you.",
+        faq2Q: "What languages are supported?",
+        faq2A: "English and Persian right now. More languages are planned for a future update.",
+        faq3Q: "Is using SignalSummary free?",
+        faq3A: "Yes, you'll receive 3 free 20-second credits from SignalSummary.",
+        faq4Q: "What file formats can I upload?",
+        faq4A: "MP3, WAV, and M4A are supported, up to 25MB per file.",
+        outTranscript: "Full Transcript",
+        outSummary: "Summary",
+        lenShort: "Short",
+        lenMedium: "Medium",
+        lenLong: "Long",
+        outSummarySoon: "Summary (soon)",
+        statusIdle: "Tap to start recording",
+        statusListening: "Listening…",
+        statusProcessing: "Transcribing…",
+        summaryLoading: "Generating summary…",
+        summaryComingSoon: "Summary is being set up — check back soon!",
+        startRecording: "Start Recording",
+        stopRecording: "Stop Recording",
+        uploadNotAvailTitle: "Not available in the free version",
+        uploadNotAvailSub: "Transcribing an existing audio file needs a paid AI service.<br>For now, use <strong>Record Audio</strong> to speak live — it's free.",
+        supportText: "Works best in Google Chrome · needs an internet connection",
+        resultsTitleTranscript: "Transcript",
+        resultsTitleSummary: "Summary",
+        copyBtn: "Copy",
+        resetBtn: "Reset",
+        verificationSent: "Account created! Check your email to verify it — if you don't see it, check your spam folder too.",
+        verificationResent: "Verification email resent — check your inbox.",
+        emailNotVerified: "Email not verified — tap to resend the verification link",
+        copiedBtn: "Copied",
+        resultsPlaceholder: "Press the button above and start talking.",
+        editHint: "For the best results, speak clearly in good audio quality. If any part of the transcript comes out wrong, you can tap it directly to fix it.",
+        summaryOnlyTip: "If you only want to use the Summary feature, do a short recording first, then edit the transcript and replace it with your own text, then tap Summary.",
+        badgeModes: "2 Output Modes",
+        badgePrivate: "Private &amp; Free",
+        privacyTitle: "Your audio is never stored",
+        privacySub: "Recordings are processed and deleted immediately after transcription.",
+        howItWorks: "Usage Guide",
+        betaBanner: "SignalSummary is currently in beta (testing). If you find a bug or have a suggestion (like adding a new language), please email the address at the bottom of the site.",
+        step1Title: "Record or upload",
+        step1Desc: "Tap the mic and speak, or drop in an existing MP3, WAV, or M4A file.",
+        step2Title: "Choose your output",
+        step2Desc: "Pick a full word-for-word transcript, or a short summary of the key points.",
+        step3Title: "Copy or download",
+        step3Desc: "Your result appears in seconds — copy it or save it for later.",
+        pricing: "Pricing",
+        priceFree: "Free",
+        priceForever: "/ forever",
+        priceFreeAmount: "0 تومان",
+        priceTBD: "TBD",
+        featLive: "Live voice recording",
+        featFreeTests: "3 free 20-second tests",
+        featTranscript: "Full transcript",
+        featSummary: "Instant summary",
+        featLangs: "English &amp; Persian",
+        currentPlan: "Your current plan",
+        comingSoon: "Coming soon",
+        pricePro: "Pro",
+        priceMonth: "Toman / mo",
+        featUpload: "Upload existing audio files",
+        featMoreLangs: "More languages",
+        featHistory: "Saved history across devices",
+        featLonger: "Longer recordings",
+        featSupport: "Priority support",
+        notifyMe: "Notify me when it's ready",
+        menuHome: "Home",
+        menuPricing: "Pricing",
+        menuHistory: "History",
+        historySignInPrompt: "Sign in to view your history.",
+        historyEmpty: "You don't have any saved recordings yet. Once you record while signed in, it'll show up here.",
+        historyLoading: "Loading your history…",
+        historyTranscriptLabel: "Transcript",
+        historySummaryLabel: "Summary",
+        historyDelete: "Delete",
+        historyUseBtn: "Open to edit / summarize",
+        menuCompany: "Company",
+        menuAbout: "About",
+        menuContact: "Contact",
+        menuPrivacy: "Privacy Policy",
+        menuTerms: "Terms of Service",
+        termsP1: "<strong>Using the service:</strong> SignalSummary lets you record or upload audio to get a transcript and an AI-generated summary. The free plan includes a limited number of short test recordings per device. By using the site, you agree to these terms.",
+        termsP2: "<strong>Your content:</strong> You're responsible for what you record or upload. Don't use the service for anything illegal, or to process audio you don't have the right to use.",
+        termsP3: "<strong>Accuracy:</strong> Transcripts and summaries are generated automatically and may contain mistakes. Don't rely on them for anything where accuracy is critical (legal, medical, or financial decisions) without double-checking against the original audio.",
+        termsP4: "<strong>No guarantees:</strong> The service is provided \"as is,\" built and maintained by one independent developer. Features, limits, and pricing may change as the project develops, and the service may occasionally be unavailable.",
+        termsP5: "<strong>Accounts:</strong> If you sign up, keep your login secure. You're responsible for activity on your account.",
+        termsP6: "Questions about these terms? Email <a class=\"about-contact-link\" href=\"mailto:signalsummarysupport@gmail.com\">signalsummarysupport@gmail.com</a>.",
+        signIn: "Sign in",
+        signUp: "Sign up",
+        authPhoneLabel: "Mobile number",
+        authNoAccountText: "Don't have an account?",
+        authCreateAccountLink: "Sign up",
+        authHaveAccountText: "Already signed in before?",
+        authSigninLink: "Sign in",
+        authSendCode: "Send code",
+        authCodeLabel: "Code sent to",
+        authVerifyCode: "Verify",
+        authChangeNumber: "Change number",
+        authResend: "Resend code",
+        authErrInvalidPhone: "Enter a valid Iranian mobile number.",
+        authErrSendFailed: "Couldn't send the code. Please try again.",
+        authErrRateLimited: "Please try again in 2 minutes.",
+        authErrTryLater: "Too many requests right now. Please try again later.",
+        authErrWrongCode: "That code is incorrect.",
+        authErrExpired: "This code has expired. Request a new one.",
+        authErrTooMany: "Too many attempts. Request a new code.",
+        authErrGeneric: "Something went wrong. Please try again.",
+        verifyBannerText: "Account created! Please check your email to verify it — if you don't see it, check your spam folder too.",
+        soonBadge: "Soon",
+
+        micDenied: "Microphone access was denied. Check your browser's site permissions.",
+        noMic: "This browser doesn't support audio recording.",
+        transcribeError: "Something went wrong while transcribing. Please try again.",
+        transcribeTimeout: "This took too long to respond. Please check your connection and try again.",
+        usageLimitReached: "You've used all 3 of your free credits. Thanks for trying SignalSummary!",
+        signInRequired: "Sign in to start using SignalSummary",
+      },
+      fa: {
+        tagline: "صداتو ضبط کن یا یه فایل صوتی آپلود کن. متن دقیق یا خلاصه‌ی نکات مهم رو فوراً بگیر.",
+        audioLangLabel: "زبان صدا",
+        langOptEn: "انگلیسی",
+        langOptFa: "فارسی",
+        tabRecord: "ضبط صدا",
+        tabUpload: "آپلود فایل",
+        footerProduct: "محصول",
+        footerCopyright: "© ۲۰۲۶ سیگنال‌سامری. تمامی حقوق محفوظ است.",
+        footerTerms: "شرایط استفاده",
+        aboutP1: "سیگنال‌سامری توسط یک برنامه‌نویس مستقل و به‌تنهایی ساخته و نگه‌داری می‌شود — نه یک شرکت یا تیم. این پروژه هنوز در حال توسعه است و هر روز کمی بهتر می‌شود.",
+        aboutP2: "اگر باگی پیدا کردید، سوالی، پیشنهادی یا مشکلی داشتید، یا مایل به تبلیغ در این سایت هستید، مستقیم با این ایمیل در تماس باشید: <a class=\"about-contact-link\" href=\"mailto:signalsummarysupport@gmail.com\">signalsummarysupport@gmail.com</a>. تمام پیام‌ها خوانده می‌شوند و در تصمیم برای قدم‌های بعدی مؤثرند.",
+        contactP1: "باگی برای گزارش دارید؟ پیشنهادی برای یک ویژگی جدید؟ سوالی دارید یا می‌خواهید تبلیغ کنید؟ مستقیم پیام بدید — همه‌ی پیام‌ها خونده می‌شن.",
+        contactReportLink: "گزارش باگ / پیشنهاد ویژگی جدید ←",
+        privacyP1: "<strong>صدا:</strong> وقتی ضبط می‌کنید، صدای شما برای تبدیل به متن به سرویس تشخیص گفتار داخلی مرورگرتان (یک سرویس رایگان گوگل) فرستاده می‌شود. خود سیگنال‌سامری هیچ ضبطی را ذخیره، ثبت یا گوش نمی‌دهد — چیزی روی هیچ سروری نگه‌داری نمی‌شود.",
+        privacyP2: "<strong>اطلاعات حساب کاربری:</strong> اگر ثبت‌نام یا وارد شوید، فقط شماره موبایل شما از طریق Firebase Authentication ذخیره می‌شود تا بتوانید به حسابتان دسترسی داشته باشید. این اطلاعات هرگز فروخته یا با شخص ثالثی به اشتراک گذاشته نمی‌شود.",
+        privacyP3: "<strong>تنظیمات محلی:</strong> انتخاب حالت روشن/تاریک شما فقط در همان مرورگرتان ذخیره می‌شود تا دفعه‌ی بعد به‌خاطر بسپاریم.",
+        privacyP4: "<strong>بدون تبلیغ، بدون ردیابی:</strong> این سایت هیچ شبکه‌ی تبلیغاتی یا ردیاب شخص ثالثی اجرا نمی‌کند.",
+        privacyP5: "سوالی درباره‌ی این خط‌مشی دارید؟ به این ایمیل پیام بدید: <a class=\"about-contact-link\" href=\"mailto:signalsummarysupport@gmail.com\">signalsummarysupport@gmail.com</a>.",
+        faqTitle: "سوالات متداول",
+        faq1Q: "آیا صدای من جایی ذخیره می‌شود؟",
+        faq1A: "صدای شما در قسمت تاریخچه فقط برای خود شخص شما قابل مشاهده خواهد بود.",
+        faq2Q: "چه زبان‌هایی پشتیبانی می‌شوند؟",
+        faq2A: "در حال حاضر فارسی و انگلیسی. زبان‌های بیشتر برای به‌روزرسانی‌های بعدی برنامه‌ریزی شده‌اند.",
+        faq3Q: "آیا استفاده از سیگنال‌سامری رایگان است؟",
+        faq3A: "بله، شما سه اعتبار ۲۰ ثانیه‌ای از طرف سیگنال‌سامری دریافت خواهید کرد.",
+        faq4Q: "چه فرمت‌های فایلی رو می‌تونم آپلود کنم؟",
+        faq4A: "فرمت‌های MP3، WAV و M4A پشتیبانی می‌شوند، حداکثر تا ۲۵ مگابایت.",
+        outTranscript: "متن کامل",
+        outSummary: "خلاصه",
+        lenShort: "کوتاه",
+        lenMedium: "متوسط",
+        lenLong: "بلند",
+        outSummarySoon: "خلاصه (به‌زودی)",
+        statusIdle: "برای شروع ضبط بزن",
+        statusListening: "در حال شنیدن…",
+        statusProcessing: "در حال تبدیل به متن…",
+        summaryLoading: "در حال ساخت خلاصه…",
+        summaryComingSoon: "خلاصه‌سازی داره راه‌اندازی می‌شه — به‌زودی برگرد!",
+        startRecording: "شروع ضبط",
+        stopRecording: "توقف ضبط",
+        uploadNotAvailTitle: "در نسخه‌ی رایگان موجود نیست",
+        uploadNotAvailSub: "تبدیل فایل صوتی موجود به متن نیاز به سرویس پولی هوش مصنوعی داره.<br>فعلاً از <strong>ضبط صدا</strong> برای صحبت زنده استفاده کن — رایگانه.",
+        supportText: "بهترین عملکرد روی گوگل کروم · نیاز به اینترنت داره",
+        resultsTitleTranscript: "متن",
+        resultsTitleSummary: "خلاصه",
+        copyBtn: "کپی",
+        resetBtn: "پاک کردن",
+        verificationSent: "حساب ساخته شد! برای تأییدش، ایمیلت رو چک کن — اگه ندیدیش، پوشه‌ی اسپم (Spam) رو هم نگاه کن.",
+        verificationResent: "ایمیل تأیید دوباره فرستاده شد — صندوق ورودی‌ت رو چک کن.",
+        emailNotVerified: "ایمیل تأیید نشده — برای ارسال دوباره‌ی لینک، بزن روش",
+        copiedBtn: "کپی شد",
+        resultsPlaceholder: "دکمه‌ی بالا رو بزن و شروع کن به صحبت کردن.",
+        editHint: "برای بهترین نتیجه، با صدای واضح و کیفیت خوب صحبت کنید. اگه جایی از متن اشتباه تبدیل شد، می‌تونید مستقیم روی متن بزنید و اصلاحش کنید.",
+        summaryOnlyTip: "اگه فقط می‌خوای از بخش خلاصه‌سازی سایت استفاده کنی، اول یه ضبط کوتاه انجام بده، بعد متن رو پاک کن و متن دلخواه خودتو جاش بذار، بعد رو خلاصه بزن.",
+        badgeModes: "۲ حالت خروجی",
+        badgePrivate: "خصوصی و رایگان",
+        privacyTitle: "صدای شما هیچ‌وقت ذخیره نمی‌شه",
+        privacySub: "ضبط‌ها بلافاصله بعد از تبدیل به متن پردازش و حذف می‌شن.",
+        howItWorks: "آموزش کار",
+        betaBanner: "سایت سیگنال‌سامری در حال حاضر در نسخه‌ی بتا (آزمایشی) است. در صورت مشاهده‌ی باگ یا داشتن پیشنهاد (مثلاً اضافه‌کردن یک زبان جدید)، می‌تونید به ایمیل درج‌شده در پایین سایت پیام بدید.",
+        step1Title: "ضبط یا آپلود کن",
+        step1Desc: "میکروفون رو بزن و صحبت کن، یا یه فایل MP3، WAV یا M4A رو بکش و رها کن.",
+        step2Title: "خروجی رو انتخاب کن",
+        step2Desc: "متن کامل کلمه‌به‌کلمه، یا یه خلاصه‌ی کوتاه از نکات مهم رو انتخاب کن.",
+        step3Title: "کپی یا دانلود کن",
+        step3Desc: "نتیجه در چند ثانیه آماده‌ست — کپیش کن یا برای بعد ذخیره‌ش کن.",
+        pricing: "قیمت‌گذاری",
+        priceFree: "رایگان",
+        priceForever: "/ برای همیشه",
+        priceFreeAmount: "0 تومان",
+        priceTBD: "نامشخص",
+        featLive: "ضبط زنده‌ی صدا",
+        featFreeTests: "۳ تست رایگان ۲۰ ثانیه‌ای",
+        featTranscript: "متن کامل",
+        featSummary: "خلاصه‌ی فوری",
+        featLangs: "فارسی و انگلیسی",
+        currentPlan: "پلن فعلی شما",
+        comingSoon: "به‌زودی",
+        pricePro: "حرفه‌ای",
+        priceMonth: "تومان / ماه",
+        featUpload: "آپلود فایل صوتی موجود",
+        featMoreLangs: "زبان‌های بیشتر",
+        featHistory: "ذخیره‌ی تاریخچه در همه‌ی دستگاه‌ها",
+        featLonger: "ضبط‌های طولانی‌تر",
+        featSupport: "پشتیبانی اولویت‌دار",
+        notifyMe: "وقتی آماده شد خبرم کن",
+        menuHome: "خانه",
+        menuPricing: "قیمت‌گذاری",
+        menuHistory: "تاریخچه",
+        historySignInPrompt: "برای دیدن تاریخچه، وارد شوید.",
+        historyEmpty: "هنوز هیچ ضبطی ذخیره نکردی. وقتی وارد حسابت باشی و ضبط کنی، اینجا نشون داده می‌شه.",
+        historyLoading: "در حال بارگذاری تاریخچه…",
+        historyTranscriptLabel: "متن کامل",
+        historySummaryLabel: "خلاصه",
+        historyDelete: "حذف",
+        historyUseBtn: "باز کردن برای ویرایش / خلاصه‌سازی",
+        menuCompany: "شرکت",
+        menuAbout: "درباره‌ی ما",
+        menuContact: "تماس با ما",
+        menuPrivacy: "حریم خصوصی",
+        menuTerms: "شرایط استفاده",
+        termsP1: "<strong>استفاده از سرویس:</strong> سیگنال‌سامری بهتون اجازه می‌ده صدا ضبط کنید یا آپلود کنید تا متن کامل و خلاصه‌ی هوش مصنوعی بگیرید. پلن رایگان شامل تعداد محدودی تست کوتاه برای هر دستگاهه. با استفاده از سایت، این شرایط رو می‌پذیرید.",
+        termsP2: "<strong>محتوای شما:</strong> مسئولیت چیزی که ضبط یا آپلود می‌کنید با خودتونه. از این سرویس برای کار غیرقانونی، یا پردازش صدایی که حق استفاده ازش رو ندارید، استفاده نکنید.",
+        termsP3: "<strong>دقت:</strong> متن‌ها و خلاصه‌ها به‌صورت خودکار ساخته می‌شن و ممکنه اشتباه داشته باشن. برای تصمیمات مهم (حقوقی، پزشکی، مالی) بدون چک‌کردن دوباره با صدای اصلی، بهشون تکیه نکنید.",
+        termsP4: "<strong>بدون تضمین:</strong> این سرویس «همون‌طور که هست» ارائه می‌شه، توسط یک برنامه‌نویس مستقل ساخته و نگه‌داری می‌شه. امکانات، محدودیت‌ها و قیمت‌ها ممکنه با پیشرفت پروژه تغییر کنن، و ممکنه گاهی سرویس در دسترس نباشه.",
+        termsP5: "<strong>حساب کاربری:</strong> اگه ثبت‌نام کردید، اطلاعات ورودتون رو امن نگه دارید. مسئولیت فعالیت‌های حساب‌تون با خودتونه.",
+        termsP6: "سوالی درباره‌ی این شرایط دارید؟ به این ایمیل پیام بدید: <a class=\"about-contact-link\" href=\"mailto:signalsummarysupport@gmail.com\">signalsummarysupport@gmail.com</a>.",
+        signIn: "ورود",
+        signUp: "ثبت‌نام",
+        authPhoneLabel: "شماره موبایل",
+        authNoAccountText: "اکانت نداری؟",
+        authCreateAccountLink: "ساخت اکانت",
+        authHaveAccountText: "از قبل وارد شدی؟",
+        authSigninLink: "ورود",
+        authSendCode: "ارسال کد",
+        authCodeLabel: "کد ارسال شد به",
+        authVerifyCode: "تایید",
+        authChangeNumber: "تغییر شماره",
+        authResend: "ارسال دوباره‌ی کد",
+        authErrInvalidPhone: "یه شماره موبایل ایرانی معتبر وارد کن.",
+        authErrSendFailed: "کد ارسال نشد. دوباره امتحان کن.",
+        authErrRateLimited: "۲ دقیقه دیگر دوباره تلاش کنید.",
+        authErrTryLater: "درخواست‌ها زیاده. کمی بعد دوباره امتحان کن.",
+        authErrWrongCode: "کد واردشده اشتباهه.",
+        authErrExpired: "این کد منقضی شده. یه کد جدید بگیر.",
+        authErrTooMany: "تعداد تلاش زیاد بود. یه کد جدید بگیر.",
+        authErrGeneric: "یه مشکلی پیش اومد. دوباره امتحان کن.",
+        verifyBannerText: "حساب ساخته شد! لطفاً برای تأیید، ایمیلت رو چک کن — اگه ندیدیش، پوشه‌ی اسپم (Spam) رو هم نگاه کن.",
+        soonBadge: "به‌زودی",
+
+        micDenied: "دسترسی به میکروفون رد شد. تنظیمات دسترسی سایت رو تو مرورگرت چک کن.",
+        noMic: "این مرورگر از ضبط صدا پشتیبانی نمی‌کنه.",
+        transcribeError: "مشکلی پیش اومد. دوباره امتحان کن.",
+        transcribeTimeout: "پاسخ خیلی طول کشید. اتصال اینترنتت رو چک کن و دوباره امتحان کن.",
+        usageLimitReached: "شما هر سه اعتبار رایگانتون رو استفاده کردید. ممنون که SignalSummary رو امتحان کردید!",
+        signInRequired: "برای شروع استفاده از سیگنال‌سامری، وارد شوید",
+      },
+    };
+
+    // Errors are logged to the console only — no visible banner in production.
+    window.addEventListener("error", (e) => {
+      console.error("Unhandled error:", e.message, e.filename, e.lineno);
+    });
+
+    let currentLang = "fa";
+    try { currentLang = localStorage.getItem("siteLang") || "fa"; } catch (e) {}
+
+    function t(key) {
+      return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS.en[key] || key;
+    }
+
+    function applyLanguage(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang === "fa" ? "fa" : "en";
+      document.documentElement.dir = lang === "fa" ? "rtl" : "ltr";
+      document.body.classList.toggle("lang-fa", lang === "fa");
+      document.getElementById("siteLangToggleLabel").textContent = lang === "fa" ? "EN" : "فا";
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        const translated = t(key);
+        if (translated.indexOf("<") !== -1) {
+          el.innerHTML = translated;
+        } else {
+          el.textContent = translated;
+        }
+      });
+      // Keep the audio-language dropdown pointing at the matching transcription language by default
+      const audioLangSelect = document.getElementById("audioLangSelect");
+      if (audioLangSelect && !audioLangSelect.dataset.userChanged) {
+        audioLangSelect.value = lang;
+      }
+      try { localStorage.setItem("siteLang", lang); } catch (e) {}
+    }
+
+    document.getElementById("siteLangToggle").addEventListener("click", () => {
+      applyLanguage(currentLang === "fa" ? "en" : "fa");
+    });
+
+    document.getElementById("audioLangSelect").addEventListener("change", (e) => {
+      e.target.dataset.userChanged = "1";
+    });
+
+    applyLanguage(currentLang);
+
+    // --- Pricing "Notify me" button ---
+    document.querySelectorAll(".price-cta:not(.current)").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        window.location.href = "mailto:signalsummarysupport@gmail.com?subject=Notify me about SignalSummary Pro";
+      });
+    });
+
+    const revealMap = {
+      "#about": "aboutSection",
+      "#contact": "contactSection",
+      "#privacy": "privacySection",
+      "#terms": "termsSection",
+    };
+    Object.keys(revealMap).forEach((hash) => {
+      document.querySelectorAll(`a[href="${hash}"]`).forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const section = document.getElementById(revealMap[hash]);
+          section.classList.remove("hidden");
+          closeMenu();
+          setTimeout(() => {
+            section.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 50);
+        });
+      });
+    });
+
+    // --- Input tabs: Record vs Upload ---
+    const tabs = document.querySelectorAll(".tab");
+    const recordView = document.getElementById("recordView");
+    const uploadView = document.getElementById("uploadView");
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        if (tab.dataset.tab === "record") {
+          recordView.classList.remove("hidden");
+          uploadView.classList.add("hidden");
+        } else {
+          recordView.classList.add("hidden");
+          uploadView.classList.remove("hidden");
+        }
+      });
+    });
+
+    // --- Output mode: Transcript vs Summary ---
+    const outButtons = document.querySelectorAll(".output-toggle-btn[data-out]");
+    const resultsTitle = document.getElementById("resultsTitle");
+    const lengthToggle = document.getElementById("lengthToggle");
+    const lengthButtons = document.querySelectorAll(".length-btn");
+    let outputMode = "transcript";
+    let summaryLength = "medium";
+    // Flip to true once a working summarization API key is set up in the Worker.
+    const SUMMARY_ENABLED = true;
+    let cachedSummary = "";
+    let summaryStale = true;
+    outButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        outButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        outputMode = btn.dataset.out;
+        lengthToggle.classList.toggle("hidden", outputMode !== "summary");
+        renderResults();
+      });
+    });
+    lengthButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        lengthButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        summaryLength = btn.dataset.len;
+        summaryStale = true;
+        if (outputMode === "summary") renderResults();
+      });
+    });
+
+    // --- Recording + real AI transcription/summarization ---
+    // (via a Cloudflare Worker that proxies to AvalAI, so the API key stays secret)
+    const WORKER_URL = "https://signalsummary-api.miladmohammadimoghadam.workers.dev";
+
+    const recordBtn = document.getElementById("recordBtn");
+    const recordBtnText = document.getElementById("recordBtnText");
+    const statusLabel = document.getElementById("statusLabel");
+    const timerText = document.getElementById("timerText");
+    const micIcon = document.getElementById("micIcon");
+    const resultsBody = document.getElementById("resultsBody");
+    const copyBtn = document.getElementById("copyBtn");
+    const audioLangSelectEl = document.getElementById("audioLangSelect");
+
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let isProcessing = false;
+    let finalTranscript = "";
+    let seconds = 0;
+    let timerInterval = null;
+
+    function formatTime(s) {
+      const m = String(Math.floor(s / 60)).padStart(2, "0");
+      const r = String(s % 60).padStart(2, "0");
+      return `${m}:${r}`;
+    }
+    function startTimer() {
+      seconds = 0;
+      timerText.textContent = "00:00";
+      timerInterval = setInterval(() => {
+        seconds++;
+        timerText.textContent = formatTime(seconds);
+        if (seconds >= MAX_RECORDING_SECONDS && isRecording) {
+          stopRecording();
+        }
+      }, 1000);
+    }
+    function stopTimer() { clearInterval(timerInterval); }
+
+    async function startRecording() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        resultsBody.innerHTML = `<span class="error-text">${t("noMic")}</span>`;
+        return;
+      }
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        resultsBody.innerHTML = `<span class="error-text">${t("micDenied")}</span>`;
+        return;
+      }
+
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        await transcribeAudio();
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      recordBtn.classList.add("recording");
+      recordBtnText.textContent = t("stopRecording");
+      statusLabel.textContent = t("statusListening");
+      micIcon.classList.add("pulsing");
+      startTimer();
+    }
+
+    async function transcribeAudio() {
+      isProcessing = true;
+      statusLabel.textContent = t("statusProcessing");
+      recordBtn.disabled = true;
+
+      try {
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "audio.webm");
+        formData.append("language", audioLangSelectEl ? audioLangSelectEl.value : "en");
+        formData.append("provider", "deepgram"); // testing Deepgram right now
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        let data;
+        try {
+          const res = await fetch(`${WORKER_URL}/transcribe`, { method: "POST", body: formData, signal: controller.signal });
+          data = await res.json();
+          clearTimeout(timeoutId);
+          if (!res.ok || data.error) {
+            const msg = typeof data.error === "string" ? data.error : (data.error && data.error.message) || t("transcribeError");
+            resultsBody.innerHTML = `<span class="error-text">${t("transcribeError")}<br><small style="opacity:.7">${msg}</small></span>`;
+            isProcessing = false;
+            await refreshRecordAvailability();
+            return;
+          }
+        } catch (fetchErr) {
+          clearTimeout(timeoutId);
+          if (fetchErr.name === "AbortError") {
+            throw new Error(t("transcribeTimeout"));
+          }
+          throw fetchErr;
+        }
+
+        finalTranscript = (data.text || "").trim();
+        cachedSummary = "";
+        summaryStale = true;
+
+        // Show the transcript immediately — don't make the person wait on
+        // Firebase calls before they see their result.
+        isProcessing = false;
+        if (finalTranscript) renderResults();
+
+        saveHistoryEntry(finalTranscript);
+        const user = sessionAuth.currentUser;
+        if (user) markUsageUsedAsync(user.uid).catch(() => {});
+        refreshRecordAvailability();
+        return;
+      } catch (err) {
+        resultsBody.innerHTML = `<span class="error-text">${t("transcribeError")}<br><small style="opacity:.7">${err.message}</small></span>`;
+      }
+
+      isProcessing = false;
+      await refreshRecordAvailability();
+    }
+
+    function stopRecording() {
+      isRecording = false;
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+      recordBtn.classList.remove("recording");
+      recordBtnText.textContent = t("startRecording");
+      micIcon.classList.remove("pulsing");
+      stopTimer();
+    }
+
+    recordBtn.addEventListener("click", async () => {
+      if (isProcessing) return;
+      const user = sessionAuth.currentUser;
+      if (!user) {
+        openAuth("signin");
+        return;
+      }
+      const reached = await hasReachedUsageLimitAsync(user.uid);
+      if (reached) {
+        resultsBody.innerHTML = `<span class="error-text">${t("usageLimitReached")}</span>`;
+        return;
+      }
+      if (!isRecording) startRecording();
+      else stopRecording();
+    });
+
+    // --- 3 free uses per account (tracked in Firestore, tied to sign-in — ---
+    // --- not per-browser, so clearing local data can't reset the count) ---
+    const FREE_USE_LIMIT = 3;
+    const MAX_RECORDING_SECONDS = 20;
+
+    async function getUsageCountAsync(uid) {
+      if (!authReady || !uid) return 0;
+      try {
+        const doc = await firebase.firestore().collection("usage").doc(uid).get();
+        return doc.exists ? (doc.data().count || 0) : 0;
+      } catch (e) {
+        console.warn("Couldn't read usage count:", e.message);
+        return 0;
+      }
+    }
+    async function hasReachedUsageLimitAsync(uid) {
+      const count = await getUsageCountAsync(uid);
+      return count >= FREE_USE_LIMIT;
+    }
+    async function markUsageUsedAsync(uid) {
+      if (!authReady || !uid) return;
+      try {
+        await firebase.firestore().collection("usage").doc(uid).set(
+          { count: firebase.firestore.FieldValue.increment(1) },
+          { merge: true }
+        );
+      } catch (e) {
+        console.warn("Couldn't update usage count:", e.message);
+      }
+    }
+
+    // Updates the record button + status label based on sign-in state and
+    // remaining free credits. Called on load, after auth changes, and after
+    // each recording.
+    async function refreshRecordAvailability() {
+      const user = sessionAuth.currentUser;
+      if (!user) {
+        recordBtn.disabled = false;
+        statusLabel.textContent = t("signInRequired");
+        return;
+      }
+      const reached = await hasReachedUsageLimitAsync(user.uid);
+      recordBtn.disabled = reached;
+      statusLabel.textContent = reached ? t("usageLimitReached") : t("statusIdle");
+    }
+    // (called later, once auth is initialized — see AUTHENTICATION section below)
+
+    function isPersianText(text) {
+      const persianChars = (text.match(/[\u0600-\u06FF]/g) || []).length;
+      return persianChars > text.length * 0.15;
+    }
+
+    async function getSummary(text) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
+      let data;
+      try {
+        const res = await fetch(`${WORKER_URL}/summarize`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, language: audioLangSelectEl ? audioLangSelectEl.value : "en", length: summaryLength }),
+          signal: controller.signal,
+        });
+        data = await res.json();
+        clearTimeout(timeoutId);
+        if (!res.ok || data.error) {
+          const msg = typeof data.error === "string" ? data.error : (data.error && data.error.message) || "Summarization failed.";
+          throw new Error(msg);
+        }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === "AbortError") {
+          throw new Error("The summarizer took too long to respond. Please try again.");
+        }
+        throw err;
+      }
+      return data.summary || "";
+    }
+
+    async function renderResults() {
+      const text = finalTranscript.trim();
+      if (!text) {
+        resultsBody.innerHTML = `<span class="placeholder">${t("resultsPlaceholder")}</span>`;
+        resultsBody.contentEditable = "false";
+        copyBtn.disabled = true;
+        return;
+      }
+      resultsBody.style.direction = isPersianText(text) ? "rtl" : "ltr";
+      resultsBody.style.textAlign = isPersianText(text) ? "right" : "left";
+
+      if (outputMode === "summary") {
+        resultsTitle.textContent = t("resultsTitleSummary");
+        resultsBody.contentEditable = "false";
+        copyBtn.disabled = true;
+
+        if (!SUMMARY_ENABLED) {
+          resultsBody.innerHTML = `<span class="placeholder">${t("summaryComingSoon")}</span>`;
+          return;
+        }
+
+        if (!summaryStale && cachedSummary) {
+          resultsBody.textContent = cachedSummary;
+          copyBtn.disabled = false;
+          return;
+        }
+
+        resultsBody.innerHTML = `<span class="placeholder">${t("summaryLoading")}</span>`;
+        try {
+          const summary = await getSummary(text);
+          cachedSummary = summary;
+          summaryStale = false;
+          updateHistoryEntrySummary(summary);
+          if (outputMode === "summary") {
+            resultsBody.textContent = summary;
+            copyBtn.disabled = false;
+          }
+        } catch (err) {
+          if (outputMode === "summary") {
+            resultsBody.innerHTML = `<span class="error-text">${t("transcribeError")}<br><small style="opacity:.7">${err.message}</small></span>`;
+          }
+        }
+      } else {
+        resultsTitle.textContent = t("resultsTitleTranscript");
+        resultsBody.textContent = text;
+        resultsBody.contentEditable = "true";
+        copyBtn.disabled = false;
+      }
+    }
+
+    // Let the person fix mistakes in the transcript — those edits become
+    // the new source text, so Summary is generated (via a fresh API call)
+    // from the corrected version.
+    resultsBody.addEventListener("input", () => {
+      if (outputMode === "transcript") {
+        finalTranscript = resultsBody.innerText;
+        summaryStale = true;
+      }
+    });
+
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(resultsBody.textContent).then(() => {
+        const original = copyBtn.textContent;
+        copyBtn.textContent = t("copiedBtn");
+        setTimeout(() => (copyBtn.textContent = original), 1200);
+      });
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      finalTranscript = "";
+      cachedSummary = "";
+      summaryStale = true;
+      currentHistoryDocId = null;
+      renderResults();
+    });
+
+    // ============================================================
+    // AUTHENTICATION (Firebase — free, no backend server needed)
+    //
+    // To make this work, you need your OWN free Firebase project:
+    // 1. Go to https://console.firebase.google.com
+    // 2. Click "Add project" (name it anything), finish the wizard.
+    // 3. In the project, go to Build > Authentication > Get started.
+    //    (No provider needs to be toggled on — sign-in happens via a
+    //    custom token minted by our own worker.js after SMS verification.)
+    // 4. Go to Project settings (gear icon) > General > scroll to
+    //    "Your apps" > click the </> (web) icon > register the app.
+    // 5. Copy the firebaseConfig object it gives you and paste it
+    //    below, replacing the placeholder values.
+    // 6. This only works when the page is hosted online (https://
+    //    or a real domain) — not when opened directly as a local
+    //    file, for the same reason the microphone needs it too.
+    // ============================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyAmJfqqSfXx6jaRNWTGVON95NH5SUYN5Vk",
+      authDomain: "signalsummary-a0174.firebaseapp.com",
+      projectId: "signalsummary-a0174",
+      storageBucket: "signalsummary-a0174.firebasestorage.app",
+      messagingSenderId: "872644904712",
+      appId: "1:872644904712:web:cdc194742576838cb7cebd"
+    };
+
+    let authReady = false;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      authReady = true;
+    } catch (e) {
+      console.warn("Firebase not configured yet:", e.message);
+    }
+
+    // ============================================================
+    // SESSION (replaces Firebase Auth for sign-in state)
+    //
+    // Signing in used to finish with firebase.auth().signInWithCustomToken(),
+    // which makes the user's own browser call Google's servers directly.
+    // From inside Iran without a VPN that call was failing outright
+    // (auth/network-request-failed) even though our own OTP check had
+    // already succeeded. Now our Worker signs its own token after the SMS
+    // code is verified, and we just store/read that token here — no call
+    // to any Google server is needed to be considered signed in.
+    // Firestore (history + free-use counting) is untouched for now and
+    // still goes through Firebase directly.
+    // ============================================================
+    const SESSION_STORAGE_KEY = "ss_session";
+
+    function decodeSessionToken(token) {
+      try {
+        const parts = (token || "").split(".");
+        if (parts.length !== 3) return null;
+        const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(decodeURIComponent(escape(atob(b64))));
+        if (!payload.exp || payload.exp * 1000 < Date.now()) return null;
+        return payload;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function readStoredSession() {
+      const token = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (!token) return null;
+      const payload = decodeSessionToken(token);
+      if (!payload) {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        return null;
+      }
+      return { uid: payload.uid, phoneNumber: payload.phone };
+    }
+
+    const sessionAuth = {
+      currentUser: readStoredSession(),
+      _listeners: [],
+      onAuthStateChanged(cb) {
+        this._listeners.push(cb);
+        cb(this.currentUser);
+      },
+      _notify() {
+        this._listeners.forEach((cb) => cb(this.currentUser));
+      },
+      setSession(token) {
+        localStorage.setItem(SESSION_STORAGE_KEY, token);
+        this.currentUser = readStoredSession();
+        this._notify();
+      },
+      signOut() {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        this.currentUser = null;
+        this._notify();
+      },
+    };
+
+    const authScrim = document.getElementById("authScrim");
+    const authClose = document.getElementById("authClose");
+    const authTitle = document.getElementById("authTitle");
+    const authError = document.getElementById("authError");
+    const authPhoneError = document.getElementById("authPhoneError");
+
+    const authPhoneForm = document.getElementById("authPhoneForm");
+    const authPhone = document.getElementById("authPhone");
+    const authSendCodeBtn = document.getElementById("authSendCodeBtn");
+
+    const authCodeForm = document.getElementById("authCodeForm");
+    const otpBoxes = Array.from(document.querySelectorAll(".otp-box"));
+    const authVerifyBtn = document.getElementById("authVerifyBtn");
+    const authChangeNumber = document.getElementById("authChangeNumber");
+    const authResendCode = document.getElementById("authResendCode");
+    const authSwitchToSignup = document.getElementById("authSwitchToSignup");
+    const authSwitchToSignin = document.getElementById("authSwitchToSignin");
+    const authGoSignup = document.getElementById("authGoSignup");
+    const authGoSignin = document.getElementById("authGoSignin");
+
+    const navSigninBtn = document.getElementById("navSigninBtn");
+    const navSignupBtn = document.getElementById("navSignupBtn");
+    const menuSigninBtn = document.getElementById("menuSigninBtn");
+    const menuSignupBtn = document.getElementById("menuSignupBtn");
+    const topnavActions = document.getElementById("topnavActions");
+    const menuAccountActions = document.getElementById("menuAccountActions");
+
+    let pendingPhone = null; // normalized +98... number waiting for a code
+    let resendCooldownInterval = null;
+
+    // Accepts 0912xxxxxxx / 912xxxxxxx / 0098912xxxxxxx / +98912xxxxxxx
+    // and normalizes to +98912xxxxxxx. Returns null if invalid.
+    function normalizeIranPhone(raw) {
+      let digits = raw.replace(/\D/g, "");
+      if (digits.startsWith("0098")) digits = digits.slice(4);
+      else if (digits.startsWith("98")) digits = digits.slice(2);
+      else if (digits.startsWith("0")) digits = digits.slice(1);
+      if (!/^9\d{9}$/.test(digits)) return null;
+      return "+98" + digits;
+    }
+
+    function openAuth(mode) {
+      authError.textContent = "";
+      authPhoneError.textContent = "";
+      pendingPhone = null;
+      authPhoneForm.reset();
+      authCodeForm.reset();
+      authPhoneForm.classList.remove("hidden");
+      authCodeForm.classList.add("hidden");
+      authTitle.textContent = mode === "signup" ? t("signUp") : t("signIn");
+      authSwitchToSignup.classList.toggle("hidden", mode === "signup");
+      authSwitchToSignin.classList.toggle("hidden", mode !== "signup");
+      clearInterval(resendCooldownInterval);
+      authScrim.classList.add("open");
+    }
+    function closeAuth() { authScrim.classList.remove("open"); }
+
+    function showCodeStep(phone) {
+      pendingPhone = phone;
+      authError.textContent = "";
+      authPhoneError.textContent = "";
+      authPhoneForm.classList.add("hidden");
+      authCodeForm.classList.remove("hidden");
+      otpBoxes.forEach((box) => (box.value = ""));
+      otpBoxes[0].focus();
+      startResendCooldown();
+    }
+
+    function startResendCooldown() {
+      let seconds = 120;
+      authResendCode.style.pointerEvents = "none";
+      authResendCode.style.opacity = "0.5";
+      authResendCode.textContent = t("authResend") + " (" + seconds + ")";
+      clearInterval(resendCooldownInterval);
+      resendCooldownInterval = setInterval(() => {
+        seconds -= 1;
+        if (seconds <= 0) {
+          clearInterval(resendCooldownInterval);
+          authResendCode.style.pointerEvents = "";
+          authResendCode.style.opacity = "";
+          authResendCode.textContent = t("authResend");
+        } else {
+          authResendCode.textContent = t("authResend") + " (" + seconds + ")";
+        }
+      }, 1000);
+    }
+
+    async function requestOtp(phone, errorTarget) {
+      errorTarget = errorTarget || authError;
+      errorTarget.textContent = "";
+      authSendCodeBtn.disabled = true;
+      try {
+        const res = await fetch(`${WORKER_URL}/send-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "send_failed");
+        showCodeStep(phone);
+      } catch (err) {
+        errorTarget.textContent = friendlyAuthError(err.message);
+      } finally {
+        authSendCodeBtn.disabled = false;
+      }
+    }
+
+    authPhoneForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      authPhoneError.textContent = "";
+      const normalized = normalizeIranPhone(authPhone.value.trim());
+      if (!normalized) {
+        authPhoneError.textContent = friendlyAuthError("invalid_phone");
+        return;
+      }
+      requestOtp(normalized, authPhoneError);
+    });
+
+    authChangeNumber.addEventListener("click", () => {
+      clearInterval(resendCooldownInterval);
+      authCodeForm.classList.add("hidden");
+      authPhoneForm.classList.remove("hidden");
+      authError.textContent = "";
+      authPhoneError.textContent = "";
+    });
+
+    authResendCode.addEventListener("click", () => {
+      if (authResendCode.style.pointerEvents === "none") return;
+      if (pendingPhone) requestOtp(pendingPhone);
+    });
+
+    // Auto-advance focus between OTP boxes, support backspace and paste
+    otpBoxes.forEach((box, i) => {
+      box.addEventListener("input", () => {
+        box.value = box.value.replace(/\D/g, "").slice(0, 1);
+        if (box.value && i < otpBoxes.length - 1) otpBoxes[i + 1].focus();
+      });
+      box.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !box.value && i > 0) otpBoxes[i - 1].focus();
+      });
+      box.addEventListener("paste", (e) => {
+        const digits = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, otpBoxes.length);
+        if (!digits) return;
+        e.preventDefault();
+        digits.split("").forEach((d, j) => { if (otpBoxes[j]) otpBoxes[j].value = d; });
+        otpBoxes[Math.min(digits.length, otpBoxes.length - 1)].focus();
+      });
+    });
+
+    authCodeForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!pendingPhone) return;
+      authError.textContent = "";
+      authVerifyBtn.disabled = true;
+      const code = otpBoxes.map((box) => box.value).join("").trim();
+      fetch(`${WORKER_URL}/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: pendingPhone, code }),
+      })
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "verify_failed");
+          // Sign-in is now just storing our own signed token locally —
+          // no call to Firebase/Google servers, so it can't fail with a
+          // network error the way signInWithCustomToken did.
+          sessionAuth.setSession(data.token);
+        })
+        .then(() => {
+          localStorage.setItem("ss_phone", pendingPhone);
+          closeAuth();
+        })
+        .catch((err) => {
+          authError.textContent = friendlyAuthError(err.message);
+        })
+        .finally(() => {
+          authVerifyBtn.disabled = false;
+        });
+    });
+
+    const verifyBanner = document.getElementById("verifyBanner");
+    const verifyBannerClose = document.getElementById("verifyBannerClose");
+    let verifyBannerTimeout = null;
+    function showVerifyBanner() {
+      document.getElementById("verifyBannerText").textContent = t("verifyBannerText");
+      verifyBanner.classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      clearTimeout(verifyBannerTimeout);
+      verifyBannerTimeout = setTimeout(() => verifyBanner.classList.add("hidden"), 15000);
+    }
+    verifyBannerClose.addEventListener("click", () => {
+      clearTimeout(verifyBannerTimeout);
+      verifyBanner.classList.add("hidden");
+    });
+
+    navSigninBtn.addEventListener("click", () => openAuth("signin"));
+    navSignupBtn.addEventListener("click", () => openAuth("signup"));
+    menuSigninBtn.addEventListener("click", () => openAuth("signin"));
+    menuSignupBtn.addEventListener("click", () => openAuth("signup"));
+    authGoSignup.addEventListener("click", () => openAuth("signup"));
+    authGoSignin.addEventListener("click", () => openAuth("signin"));
+    authClose.addEventListener("click", closeAuth);
+    authScrim.addEventListener("click", (e) => { if (e.target === authScrim) closeAuth(); });
+
+    function friendlyAuthError(code) {
+      // TEMP DEBUG: show raw debug/config-error text as-is so we can see it on screen.
+      if (typeof code === "string" && (code.startsWith("otp_mismatch_debug:") || code.startsWith("send_failed:"))) return code;
+      const map = {
+        invalid_phone: t("authErrInvalidPhone"),
+        send_failed: t("authErrSendFailed"),
+        rate_limited: t("authErrRateLimited"),
+        ip_limited: t("authErrTryLater"),
+        service_busy: t("authErrTryLater"),
+        verify_failed: t("authErrWrongCode"),
+        otp_expired: t("authErrExpired"),
+        otp_mismatch: t("authErrWrongCode"),
+        too_many_attempts: t("authErrTooMany"),
+      };
+      return map[code] || t("authErrGeneric");
+    }
+
+    function renderAuthState(user) {
+      if (user) {
+        const shownPhone = localStorage.getItem("ss_phone") || "";
+        const chipHtml = `
+          <div class="user-chip"><span class="dot"></span><span dir="ltr">${shownPhone}</span></div>
+          <button class="btn-signout" id="signOutBtn">Sign out</button>
+        `;
+        topnavActions.querySelectorAll(".btn-signin, .btn-signup, .login-icon-btn").forEach((b) => (b.style.display = "none"));
+        menuAccountActions.querySelectorAll(".btn-signin, .btn-signup").forEach((b) => (b.style.display = "none"));
+
+        let chip = document.getElementById("navUserChip");
+        if (chip) chip.remove();
+        chip = document.createElement("div");
+        chip.id = "navUserChip";
+        chip.style.display = "flex";
+        chip.style.alignItems = "center";
+        chip.style.gap = "8px";
+        chip.innerHTML = chipHtml;
+        topnavActions.prepend(chip);
+        document.getElementById("signOutBtn").addEventListener("click", () => {
+          localStorage.removeItem("ss_phone");
+          sessionAuth.signOut();
+        });
+      } else {
+        topnavActions.querySelectorAll(".btn-signin, .btn-signup, .login-icon-btn").forEach((b) => (b.style.display = ""));
+        menuAccountActions.querySelectorAll(".btn-signin, .btn-signup").forEach((b) => (b.style.display = ""));
+        const chip = document.getElementById("navUserChip");
+        if (chip) chip.remove();
+      }
+      const section = document.getElementById("historySection");
+      if (section && !section.classList.contains("hidden")) loadHistory();
+      refreshRecordAvailability();
+    }
+
+    sessionAuth.onAuthStateChanged(renderAuthState);
+
+    // ============================================================
+    // HISTORY (Firestore — same free Firebase project as sign-in)
+    //
+    // One-time setup needed in the Firebase console:
+    // 1. Go to Build > Firestore Database > Create database
+    //    (choose "production mode", pick any location).
+    // 2. Go to the "Rules" tab and replace the rules with:
+    //
+    //    rules_version = '2';
+    //    service cloud.firestore {
+    //      match /databases/{database}/documents {
+    //        match /history/{docId} {
+    //          allow read, delete: if request.auth != null && request.auth.token.phone_verified == true && request.auth.uid == resource.data.uid;
+    //          allow create: if request.auth != null && request.auth.token.phone_verified == true && request.auth.uid == request.resource.data.uid;
+    //          allow update: if request.auth != null && request.auth.token.phone_verified == true && request.auth.uid == resource.data.uid;
+    //        }
+    //        match /usage/{uid} {
+    //          allow read, write: if request.auth != null && request.auth.uid == uid;
+    //        }
+    //      }
+    //    }
+    //
+    //    Then click "Publish".
+    // ============================================================
+    let currentHistoryDocId = null;
+
+    function saveHistoryEntry(transcript) {
+      currentHistoryDocId = null;
+      if (!authReady) return;
+      const user = sessionAuth.currentUser;
+      if (!user || !user.emailVerified || !transcript) return;
+      firebase.firestore().collection("history").add({
+        uid: user.uid,
+        transcript,
+        summary: "",
+        language: audioLangSelectEl ? audioLangSelectEl.value : "en",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }).then((docRef) => {
+        currentHistoryDocId = docRef.id;
+      }).catch((err) => console.warn("Couldn't save history:", err.message));
+    }
+
+    function updateHistoryEntrySummary(summary) {
+      if (!authReady || !currentHistoryDocId) return;
+      firebase.firestore().collection("history").doc(currentHistoryDocId).update({ summary })
+        .catch((err) => console.warn("Couldn't update history:", err.message));
+    }
+
+    function formatHistoryDate(timestamp) {
+      if (!timestamp || !timestamp.toDate) return "";
+      const d = timestamp.toDate();
+      return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) +
+        " · " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    }
+
+    let historyDataById = {};
+
+    function useHistoryEntry(id) {
+      const data = historyDataById[id];
+      if (!data) return;
+      currentHistoryDocId = id;
+      finalTranscript = data.transcript || "";
+      cachedSummary = data.summary || "";
+      summaryStale = !data.summary;
+      outputMode = "transcript";
+      outButtons.forEach((b) => b.classList.toggle("active", b.dataset.out === "transcript"));
+      renderResults();
+      const resultsPanel = document.querySelector(".results-panel");
+      if (resultsPanel) resultsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function loadHistory() {
+      const historyList = document.getElementById("historyList");
+      const signedOutBox = document.getElementById("historySignedOut");
+      const user = sessionAuth.currentUser;
+
+      if (!user) {
+        signedOutBox.querySelector("p").textContent = t("historySignInPrompt");
+        signedOutBox.querySelector("#historySignInBtn").classList.remove("hidden");
+        signedOutBox.classList.remove("hidden");
+        historyList.classList.add("hidden");
+        return;
+      }
+      if (!user.emailVerified) {
+        signedOutBox.querySelector("p").textContent = t("historyVerifyPrompt");
+        signedOutBox.querySelector("#historySignInBtn").classList.add("hidden");
+        signedOutBox.classList.remove("hidden");
+        historyList.classList.add("hidden");
+        return;
+      }
+      signedOutBox.classList.add("hidden");
+      historyList.classList.remove("hidden");
+      historyList.innerHTML = `<div class="history-loading">${t("historyLoading")}</div>`;
+
+      firebase.firestore().collection("history")
+        .where("uid", "==", user.uid)
+        .orderBy("createdAt", "desc")
+        .limit(50)
+        .get()
+        .then((snapshot) => {
+          if (snapshot.empty) {
+            historyList.innerHTML = `<div class="history-empty">${t("historyEmpty")}</div>`;
+            return;
+          }
+          historyList.innerHTML = "";
+          historyDataById = {};
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            historyDataById[doc.id] = data;
+            const item = document.createElement("div");
+            item.className = "history-item";
+            item.innerHTML = `
+              <div class="history-item-meta">
+                <span>${formatHistoryDate(data.createdAt)}</span>
+                <button class="history-item-delete" data-id="${doc.id}">${t("historyDelete")}</button>
+              </div>
+              <div class="history-item-transcript">${(data.transcript || "").replace(/</g, "&lt;")}</div>
+              ${data.summary ? `<div class="history-item-summary"><strong>${t("historySummaryLabel")}:</strong> ${data.summary.replace(/</g, "&lt;")}</div>` : ""}
+              <button class="history-item-use" data-id="${doc.id}">${t("historyUseBtn")}</button>
+            `;
+            historyList.appendChild(item);
+          });
+          historyList.querySelectorAll(".history-item-delete").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              firebase.firestore().collection("history").doc(btn.dataset.id).delete()
+                .then(loadHistory)
+                .catch((err) => console.warn("Couldn't delete:", err.message));
+            });
+          });
+          historyList.querySelectorAll(".history-item-use").forEach((btn) => {
+            btn.addEventListener("click", () => useHistoryEntry(btn.dataset.id));
+          });
+        })
+        .catch((err) => {
+          historyList.innerHTML = `<div class="history-empty">${err.message}</div>`;
+        });
+    }
+
+    document.querySelectorAll('a[href="#history"]').forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        const section = document.getElementById("historySection");
+        section.classList.remove("hidden");
+        closeMenu();
+        loadHistory();
+        setTimeout(() => section.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      });
+    });
+
+    document.getElementById("historySignInBtn").addEventListener("click", () => openAuth("signin"));
+  </script>
+
+</body>
+</html>
