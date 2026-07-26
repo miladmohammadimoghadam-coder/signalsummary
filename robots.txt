@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://miladmohammadimoghadam-coder.github.io/signalsummary/sitemap.xml
